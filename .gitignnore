@@ -1,0 +1,4 @@
+target/
+configuration
+configuration/
+configuration/**

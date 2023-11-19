@@ -1,0 +1,306 @@
+{
+  "db": "PostgreSQL",
+  "1b90bf19f4e99c59dd62b1ca4519d8fb50b66ce39d52ec2bde2786e4777e0f20": {
+    "describe": {
+      "columns": [
+        {
+          "name": "node_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "edge_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "edge_letter!: String",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                WITH inserted_edge AS (\n                    INSERT INTO node_edge (node_id, edge_id) \n                    VALUES ($1, $2)\n                    RETURNING *\n                )\n                SELECT inserted_edge.node_id, inserted_edge.edge_id, n.letter AS \"edge_letter!: String\"\n                FROM inserted_edge\n                LEFT JOIN node AS n ON n.id = inserted_edge.edge_id;\n            "
+  },
+  "305e8c818a3bd968ebf8d6c493243717cb2aa684d2e24511618a654d78983d3d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "node_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "edge_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "edge_letter!: String",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT ne.node_id, ne.edge_id, n.letter AS \"edge_letter!: String\"\n            FROM node_edge AS ne LEFT JOIN node AS n on ne.edge_id = n.id\n            WHERE node_id = $1\n        "
+  },
+  "320d9b35e8a4982d8c285c2f9375ce2879ad34cccd2f9c250739bbd20a2ebdf7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "letter",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "terminal",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "edges!: Vec<i64>",
+          "ordinal": 4,
+          "type_info": "Int8Array"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Bool",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                        WITH new_node AS (\n                            INSERT INTO node (letter, terminal) VALUES ($1, $2) RETURNING *\n                        ), parent_node AS (\n                            INSERT INTO node_edge (node_id, edge_id) SELECT $3, id FROM new_node\n                        )\n                        SELECT\n                            new_node.id,\n                            new_node.letter,\n                            new_node.count,\n                            new_node.terminal,\n                            COALESCE(ARRAY_REMOVE(ARRAY_AGG(node_edge.edge_id), NULL), '{}'::integer[]) AS \"edges!: Vec<i64>\"\n                        FROM\n                            new_node\n                        LEFT JOIN\n                            node_edge ON new_node.id = node_edge.node_id\n                        GROUP BY\n                            new_node.id, new_node.letter, new_node.count, new_node.terminal;\n                    "
+  },
+  "36992a7304b212583de75fcb122e4fa7f0850fdcac717b593ddcf80c45b691e9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "letter",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "terminal",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "edges!: Vec<i64>",
+          "ordinal": 4,
+          "type_info": "Int8Array"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            SELECT n.id, n.letter, n.count, n.terminal, ARRAY_AGG(DISTINCT ne.edge_id) AS \"edges!: Vec<i64>\"\n            FROM node AS n\n            LEFT JOIN node_edge AS ne on n.id=ne.node_id\n            WHERE letter = $1\n            GROUP BY n.id, n.letter, n.count, n.terminal\n        "
+  },
+  "47c30892d9376b02c52814e76c01846861b4c2132b49b6c009cbf112355c76bf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "letter",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "terminal",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "edges!: Vec<i64>",
+          "ordinal": 4,
+          "type_info": "Int8Array"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8Array"
+        ]
+      }
+    },
+    "query": "\n                WITH filtered_nodes AS (\n                    SELECT id, letter, count, terminal\n                    FROM node\n                    WHERE id = ANY($1)\n                )\n                SELECT \n                    fn.id, \n                    fn.letter, \n                    fn.count, \n                    fn.terminal,\n                    CASE WHEN COUNT(ne.edge_id) = 0 THEN ARRAY[]::bigint[] ELSE ARRAY_AGG(DISTINCT ne.edge_id) END AS \"edges!: Vec<i64>\"\n                FROM filtered_nodes AS fn\n                LEFT JOIN node_edge AS ne ON fn.id = ne.node_id\n                GROUP BY fn.id, fn.letter, fn.count, fn.terminal\n                ORDER BY array_position($1, fn.id);\n            "
+  },
+  "bbedf74306390a4fab31d77346de76f85dd6ce582b120b0a995e1a929f0025ba": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "letter",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "terminal",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            WITH RECURSIVE edges AS (\n                    SELECT\n                        id, letter, count, terminal\n                    FROM\n                        node\n                    WHERE \n                        id = $1\n                    UNION\n                        SELECT\n                            n.id,\n                            n.letter,\n                            n.count,\n                            n.terminal\n                        FROM\n                            node n\n                        INNER JOIN node_edge ON node_edge.node_id = n.id\n                        WHERE n.count > 0\n            ) SELECT * FROM edges;\n        "
+  },
+  "be03c5cd3fc960a3080de7717b48ab515687d30e54787bafd05df44172aa5ca1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "array",
+          "ordinal": 0,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            SELECT ARRAY (SELECT UNNEST(scan_rows($1, $2)));\n            "
+  },
+  "d166a73194fecb0b665bf2ce95e7346a7370400eefcbb7983a102b6c6abce997": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "letter",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "terminal",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "edges!: Vec<i64>",
+          "ordinal": 4,
+          "type_info": "Int8Array"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n                        WITH new_node AS (\n                            INSERT INTO node (letter, terminal) VALUES ($1, $2) RETURNING *\n                        )\n                        SELECT\n                            new_node.id,\n                            new_node.letter,\n                            new_node.count,\n                            new_node.terminal,\n                            COALESCE(ARRAY(SELECT node_edge.edge_id FROM node_edge WHERE new_node.id = node_edge.node_id), '{}'::integer[]) AS \"edges!: Vec<i64>\"\n                        FROM\n                            new_node;\n                        \n                        "
+  }
+}
