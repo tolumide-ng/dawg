@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod test_dawg {
-    use std::borrow::Cow;
 
     use crate::dawg::dawg::Dawg;
 
@@ -94,7 +93,9 @@ mod test_dawg {
 
         assert!(dawg.lookup(adapt("care"), false).is_some());
         #[cfg(not(feature = "threading"))]
-        let lookup = dawg.lookup(adapt("ba"), false).unwrap().borrow();
+        let lookup = dawg.lookup(adapt("ba"), false).unwrap();
+        #[cfg(not(feature = "threading"))]
+        let lookup = lookup.borrow();
 
         #[cfg(feature = "threading")]
         let lookup = dawg.lookup(adapt("ba"), false).unwrap();

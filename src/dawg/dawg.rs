@@ -3,14 +3,12 @@ use std::collections::HashMap;
 
 #[cfg(not(feature = "threading"))]
 use std::rc::Rc;
-
 #[cfg(feature = "threading")]
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use crate::node::node::{DawgWrapper, Node};
-
 use crate::dawg::search::{SearchReq, SearchRes};
 use crate::dawg::tridawg::TriDawg;
 
