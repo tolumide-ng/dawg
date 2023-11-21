@@ -23,13 +23,13 @@ pub type Node = Arc<Mutex<DawgNode>>;
 /// `Node`: Represents a letter in the DAWG,
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DawgNode {
-    id: usize,
+    pub(crate) id: usize,
     /// specifies whether this node is the end of a valid `WORD` in your dictionary
     /// TRUE: Yes, it is the end of a valid word
     /// FALSE: No, it is not the end of a valid word
     pub terminal: bool,
     /// Letters(nodes) that extend from this letter (node)
-    pub edges: HashMap<String, Node>,
+    pub(crate) edges: HashMap<String, Node>,
     /// Specifies the total number of word terminals resulting from this node,
     /// this word terminals (letters that end a word) can be direct children, grand-children, 
     /// or even great-grand-children of this node
@@ -68,6 +68,7 @@ impl DawgNode {
         }
     }
 
+
     /// Returns the total number of word terminals that result(are extended) from this node
     /// this can be chidlren/grand-children/great-grand-children e.t.c
     pub(crate) fn num_reachable(&mut self) -> usize {
@@ -98,6 +99,10 @@ impl DawgNode {
     pub fn edge_keys(&self) -> Vec<&String> {
         let keys = self.edges.keys().collect::<Vec<_>>();
         keys
+    }
+
+    pub fn edges(&self) -> &HashMap<String, Node> {
+        &self.edges
     }
 }
 

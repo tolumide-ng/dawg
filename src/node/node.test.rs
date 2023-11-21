@@ -133,7 +133,7 @@ mod test_dawg_node {
         
         assert_eq!(root_node.edge_keys().len(), 3);
         for id in ["1", "2", "3"] {
-            assert!(root_node.edge_keys().contains(&&id.to_string()));
+            assert!(root_node.edges().keys().collect::<Vec<_>>().contains(&&id.to_string()));
         }
         assert_eq!(root_node.terminal, false);
         assert_eq!(root_node.num_reachable(), 3);

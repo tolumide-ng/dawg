@@ -34,6 +34,38 @@ mod test_dawg {
             .collect::<Vec<String>>()
     }
 
+
+    #[test]
+    fn should_create_a_new_dawg() {
+        let dawg = Dawg::new();
+
+        assert_eq!(dawg.minimized_nodes.len(), 0);
+        assert_eq!(dawg.unchecked_nodes.len(), 0);
+        assert_eq!(dawg.previous_word, String::new());
+        #[cfg(not(feature = "threading"))]
+        {   
+            assert_eq!(dawg.root.borrow().count, 0);
+            assert_eq!(dawg.root.borrow().id, 0);
+        }
+        #[cfg(feature = "threading")]
+        {
+            assert_eq!(dawg.root.lock().unwrap().count, 0);
+            assert_eq!(dawg.root.lock().unwrap().id, 0);
+        }
+    }
+
+    #[cfg(test)]
+    mod insert_new_word {
+        #[test]
+        fn should_insert_a_new_word_into_an_existing_dawg() {}
+
+
+        #[test]
+        fn should_insert_a_new_word_into_a_new_dawg() {}
+    }
+
+
+
     #[test]
     fn test_dawg_creation() {
         let dawg = Dawg::new();

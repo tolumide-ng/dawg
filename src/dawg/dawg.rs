@@ -1,5 +1,5 @@
-use std::cmp;
-use std::collections::HashMap;
+use std::borrow::BorrowMut;
+use std::{collections::HashMap, cmp};
 
 #[cfg(not(feature = "threading"))]
 use std::rc::Rc;
@@ -9,8 +9,14 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::node::node::{DawgWrapper, Node};
-use crate::dawg::search::{SearchReq, SearchRes};
+use crate::dawg::search::SearchRes;
 use crate::dawg::tridawg::TriDawg;
+
+
+pub enum SearchReq {
+    Vertex,
+    Word,
+}
 
 #[cfg(test)]
 #[path = "./dawg.test.rs"]
@@ -18,11 +24,13 @@ mod dawg_test;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dawg {
+    /// The root of the dawg
     root: Node,
+    /// The wrapper of the dawg (generates a new id for every new dawg node) (review this comment please)
+    node: DawgWrapper,
     minimized_nodes: HashMap<String, Node>,
     unchecked_nodes: Vec<TriDawg>,
-    previous_word: String,
-    node: DawgWrapper,
+    previous_word: String, // ??? Did I mean previous letter?
 }
 
 impl Dawg {
@@ -31,10 +39,10 @@ impl Dawg {
 
         Self {
             root: dawg_wrapper.create(),
+            node: dawg_wrapper,
             minimized_nodes: HashMap::new(),
             unchecked_nodes: vec![],
             previous_word: String::new(),
-            node: dawg_wrapper,
         }
     }
 
@@ -91,6 +99,10 @@ impl Dawg {
         }
     }
 
+
+    /// Adds a word into our Dawg
+    /// Panics if the word you're trying to insert is lesser than a previously inserted one
+    /// ** words are expected to have been sorted (alphabetical order) before insertion into the dawg
     pub fn insert(&mut self, word: String) {
         if self.previous_word > word {
             panic!("Error: Please ensure all words are sorted before adding")
@@ -98,21 +110,8 @@ impl Dawg {
 
         let mut common_prefix = 0;
 
-        let word_vec = word
-            .split_terminator("")
-            .skip(1)
-            .collect::<Vec<_>>()
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
-        let prev_word_vec = self
-            .previous_word
-            .split_terminator("")
-            .skip(1)
-            .collect::<Vec<_>>()
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
+        let word_vec = word.split_terminator("").skip(1).map(|l| l.to_string()).collect::<Vec<String>>();
+        let prev_word_vec = self.previous_word.split_terminator("").skip(1).map(|l| l.to_string()).collect::<Vec<String>>();
 
         let min_length = cmp::min(word_vec.len(), prev_word_vec.len());
 
@@ -126,58 +125,50 @@ impl Dawg {
         // write out what this line does for easy onboarding
         self.minimize(common_prefix);
 
-        // Get the letters that are not similiar to the last
+        // Get the remaining letters that are not a part of the common prefix
         for index in common_prefix..word_vec.len() {
             let letter = word_vec[index].to_owned();
 
-            let mut node = &self.root;
+            // having established the common prefixes earlier (which we won't be duplicating)
+            // we would extend the last node with the remaining letters from our new word
+            let mut parent = &self.root;
 
-            if self.unchecked_nodes.len() != 0 {
-                let last = self.unchecked_nodes.len() - 1;
-                node = &self.unchecked_nodes[last].child;
+            // if the unchecked nodes vec is not empty, then use the last node in it
+            if let Some(last_node) = self.unchecked_nodes.last() {
+                parent = &last_node.child;
             }
 
-            let next_node = self.node.create();
-            // reference the previous node (ether in the uncheckd_nodes or the root(incase it is the first))
+
+            let current = self.node.create();
+            // reference the previous node (either in the uncheckd_nodes or the root(incase it is the first))
             #[cfg(not(feature = "threading"))]
-            node.as_ref()
-                .borrow_mut()
-                .edges
-                .insert(letter.to_owned(), Rc::clone(&next_node));
-
+            parent.as_ref().borrow_mut().edges.insert(letter.to_owned(), Rc::clone(&current));
             #[cfg(feature = "threading")]
-            node.as_ref()
-                .lock()
-                .unwrap()
-                .edges
-                .insert(letter.to_owned(), Arc::clone(&next_node));
+            parent.as_ref().lock().unwrap().edges.insert(letter.to_owned(), Arc::clone(&current));
 
-            // tridawg is the parent == node, and the letter + next_node == current+node
+            // tridawg is the parent == node
             #[cfg(not(feature = "threading"))]
-            let tridawg = TriDawg::new(Rc::clone(node), letter, Rc::clone(&next_node));
-
+            let tridawg = TriDawg::new(Rc::clone(parent), letter, Rc::clone(&current));
             #[cfg(feature = "threading")]
-            let tridawg = TriDawg::new(Arc::clone(node), letter, Arc::clone(&next_node));
+            let tridawg = TriDawg::new(Arc::clone(parent), letter, Arc::clone(&current));
 
             self.unchecked_nodes.push(tridawg);
         }
 
-        let last_unchecked = self.unchecked_nodes.len() - 1;
-
+        let last_node = self.unchecked_nodes.last().unwrap();
+        
         #[cfg(not(feature = "threading"))]
-        let node = &mut self.unchecked_nodes[last_unchecked]
-            .child
-            .as_ref()
-            .borrow_mut();
-
+        {last_node.child.as_ref().borrow_mut().terminal = true};
         #[cfg(feature = "threading")]
-        let node = &mut self.unchecked_nodes[last_unchecked]
-            .child
-            .as_ref()
-            .lock()
-            .unwrap();
+        {last_node.child.as_ref().lock().unwrap().terminal = true};
 
-        node.terminal = true;
+
+        // let last_unchecked = self.unchecked_nodes.len() - 1;
+        // #[cfg(not(feature = "threading"))]
+        // let node = &mut self.unchecked_nodes[last_unchecked].child.as_ref().borrow_mut();
+        // #[cfg(feature = "threading")]
+        // let node = &mut self.unchecked_nodes[last_unchecked].child.as_ref().lock().unwrap();
+        // node.terminal = true;
 
         self.previous_word = word;
     }

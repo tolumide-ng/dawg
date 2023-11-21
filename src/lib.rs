@@ -13,7 +13,7 @@
 //! ]
 //! ```
 
-mod repository;
+// mod repository;
 mod dawg;
 mod node;
 
