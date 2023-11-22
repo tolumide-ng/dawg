@@ -1,6 +1,5 @@
 #[cfg(not(feature = "threading"))]
 use std::{cell::RefCell, rc::Rc};
-
 #[cfg(feature = "threading")]
 use std::sync::{Arc, Mutex};
 
@@ -16,19 +15,24 @@ mod node_test;
 
 #[cfg(not(feature = "threading"))]
 pub type Node = Rc<RefCell<DawgNode>>;
-
 #[cfg(feature = "threading")]
 pub type Node = Arc<Mutex<DawgNode>>;
 
+
+
+/// `Node`: Represents a letter in the DAWG,
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DawgNode {
-    pub id: usize,
-    /// specifies whether this node is the end of a valid `WORD`
+    pub(crate) id: usize,
+    /// specifies whether this node is the end of a valid `WORD` in your dictionary
     /// TRUE: Yes, it is the end of a valid word
     /// FALSE: No, it is not the end of a valid word
     pub terminal: bool,
-    /// All other possible letters(nodes) that can be extended from this letter(node)
-    pub edges: HashMap<String, Node>,
+    /// Letters(nodes) that extend from this letter (node)
+    pub(crate) edges: HashMap<char, Node>,
+    /// Specifies the total number of word terminals resulting from this node,
+    /// this word terminals (letters that end a word) can be direct children, grand-children, 
+    /// or even great-grand-children of this node
     pub count: usize,
 }
 
@@ -48,14 +52,13 @@ impl DawgWrapper {
 
         #[cfg(not(feature = "threading"))]
         return Rc::new(RefCell::new(node));
-
         #[cfg(feature = "threading")]
         return Arc::new(Mutex::new(node));
     }
 }
 
 impl DawgNode {
-    /// Creates a new DawgNode
+    /// Creates a new node (DawgNode)
     pub fn new(id: usize) -> Self {
         Self {
             id,
@@ -64,6 +67,7 @@ impl DawgNode {
             count: 0,
         }
     }
+
 
     /// Returns the total number of word terminals that result(are extended) from this node
     /// this can be chidlren/grand-children/great-grand-children e.t.c
@@ -78,33 +82,28 @@ impl DawgNode {
             count += 1;
         }
 
-        for (_, value) in &mut self.edges {
+        for (_, value) in &mut self.edges {        
             #[cfg(not(feature = "threading"))]
-            if let Some(pre_value) = Rc::get_mut(value) {
-                count += pre_value.get_mut().num_reachable();
-            }
+            {count += value.borrow_mut().num_reachable();}
 
-            // let prev_count = previous_count.lock().unwrap().num_reachable();
             #[cfg(feature = "threading")]
             if let Ok(mut handle) = value.lock() {
                 count += handle.num_reachable();
             }
-
-            // count += previous_count.get_mut().and_then(self.num_reachable);
         }
 
         self.count = count;
         return count;
     }
 
-    pub(crate) fn edge_keys(&self) -> Vec<&String> {
+    pub fn edge_keys(&self) -> Vec<&char> {
         let keys = self.edges.keys().collect::<Vec<_>>();
         keys
     }
 
-    // pub fn update_edges(&mut self, key: &'static str, value: Daw) -> HashMap<&'static str, Rc<RefCell<DawgNode>>> {
-    //     self.edges.insert(k, v)
-    // }
+    pub fn edges(&self) -> &HashMap<char, Node> {
+        &self.edges
+    }
 }
 
 impl Display for DawgNode {
