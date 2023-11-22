@@ -16,7 +16,7 @@ use crate::dawg::tridawg::TriDawg;
 #[path = "./dawg.test.rs"]
 mod dawg_test;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Dawg {
     /// The root of the dawg
     root: Node,

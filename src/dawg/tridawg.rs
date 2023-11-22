@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::node::node::Node;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriDawg {
     /// A node that extends to this node (parent)
     pub parent: Node,
