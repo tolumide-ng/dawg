@@ -13,23 +13,4 @@ publish = true
 threading = []
 
 [dependencies]
-uuid = { version="1.3.4", features=["v4", "serde"] }
-serde = "1.0.164"
-config = { version = "0.13.3", features = ["yaml"]}
-derive_more = "0.99.17"
-dotenv = "0.15.0"
-tokio = { version = "1.29.1", features = ["full"] }
-
-
-[dependencies.sqlx]
-version = "0.6.2"
-default-features = false
-features = [
-    "offline",
-    "runtime-tokio-native-tls",
-    "uuid",
-    "macros",
-    "postgres",
-    "migrate",
-    "json"
-]
+serde = { version = "1.0.193", features = ["derive", "rc"] }
