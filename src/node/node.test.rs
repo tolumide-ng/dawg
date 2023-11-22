@@ -61,19 +61,22 @@ mod test_dawg_node {
 
         //                          0
         //              /\                   /\  
-        //            1    2(t)             3    x
+        //            a    b(t)             c    x
         //                 /   \ 
-        //               4(t)  5(t)
+        //               d(t)  e(t)
         // 
         // 
         // where (t) means it's a terminal i.e. (end of a word) -> terminal = true
 
         #[cfg(not(feature = "threading"))]
-        let mut nodes: Vec<Rc<RefCell<DawgNode>>>  = Vec::with_capacity(7);
+        let mut nodes: Vec<Rc<RefCell<DawgNode>>>  = Vec::with_capacity(8);
         #[cfg(feature = "threading")]
-        let mut nodes: Vec<Arc<Mutex<DawgNode>>>  = Vec::with_capacity(7);
+        let mut nodes: Vec<Arc<Mutex<DawgNode>>>  = Vec::with_capacity(8);
 
-        for id in 0..=6 {
+        let dawg_node = dawg_wrapper.create();
+        nodes.push(dawg_node);
+
+        for id in 'a'..='f' {
             let dawg_node = dawg_wrapper.create();
 
             #[cfg(feature = "threading")]
@@ -82,34 +85,34 @@ mod test_dawg_node {
             let mut ref_node = dawg_node.borrow_mut();
 
             // setup
-            if [1, 2, 3].contains(&id) {
+            if ['a', 'b', 'c'].contains(&id) {
                 if let Some(node_at_zero) = nodes.get_mut(0) {
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
                 }
-            } else if [4, 5].contains(&id) {
+            } else if ['d', 'e'].contains(&id) {
                 // 4th and 5th node are terminals (and the children of node with id 2)
                 // genealogy (0(root) --->> [1, 2(this one-*), 3] --->> [4, 5])
                 if let Some(node_at_zero) = nodes.get_mut(2) {
                     ref_node.terminal = true;
 
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
                 }
-            } else if id == 6 {
+            } else if id == 'f' {
                 // 6th node is a terminal
                 // genealogy (0(root) --->> [1, 2(this one-*), 3] --->> [4, 5(this one-*)] --->> [6])
                 if let Some(node_at_zero) = nodes.get_mut(5) {
                     ref_node.terminal = true;
 
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
                 }
             }
 
@@ -128,20 +131,18 @@ mod test_dawg_node {
         let mut root_node = root_node.lock().unwrap();
         #[cfg(not(feature = "threading"))]
         let mut root_node = root_node.borrow_mut();
-
-        
         
         assert_eq!(root_node.edge_keys().len(), 3);
-        for id in ["1", "2", "3"] {
-            assert!(root_node.edges().keys().collect::<Vec<_>>().contains(&&id.to_string()));
+        for id in ['a', 'b', 'c'] {
+            assert!(root_node.edges().keys().collect::<Vec<_>>().contains(&&id));
         }
         assert_eq!(root_node.terminal, false);
         assert_eq!(root_node.num_reachable(), 3);
 
         #[cfg(feature = "threading")]
-        let mut root_nodes_child_two = root_node.edges.get("2").unwrap().lock().unwrap();
+        let mut root_nodes_child_two = root_node.edges.get(&'b').unwrap().lock().unwrap();
         #[cfg(not(feature = "threading"))]
-        let mut root_nodes_child_two = root_node.edges.get("2").unwrap().borrow_mut();
+        let mut root_nodes_child_two = root_node.edges.get(&'b').unwrap().borrow_mut();
 
         assert_eq!(root_nodes_child_two.edge_keys().len(), 2);
         assert_eq!(root_nodes_child_two.terminal, false);
@@ -149,9 +150,9 @@ mod test_dawg_node {
 
         
         #[cfg(feature = "threading")]
-        let mut grand_child = root_nodes_child_two.edges.get("5").unwrap().lock().unwrap();
+        let mut grand_child = root_nodes_child_two.edges.get(&'e').unwrap().lock().unwrap();
         #[cfg(not(feature = "threading"))]
-        let mut grand_child = root_nodes_child_two.edges.get("5").unwrap().borrow_mut();
+        let mut grand_child = root_nodes_child_two.edges.get(&'e').unwrap().borrow_mut();
         
         assert_eq!(grand_child.edge_keys().len(), 1);
         assert_eq!(grand_child.terminal, true);

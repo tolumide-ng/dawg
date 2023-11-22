@@ -8,7 +8,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::node::node::{DawgWrapper, Node};
-use crate::dawg::search::SearchRes;
+use crate::dawg::search::SearchResult;
 use crate::dawg::tridawg::TriDawg;
 
 
@@ -98,8 +98,8 @@ impl Dawg {
 
         let mut common_prefix = 0;
 
-        let word_vec = word.split_terminator("").skip(1).map(|l| l.to_string()).collect::<Vec<String>>();
-        let prev_word_vec = self.previous_word.split_terminator("").skip(1).map(|l| l.to_string()).collect::<Vec<String>>();
+        let word_vec = word.chars().collect::<Vec<_>>();
+        let prev_word_vec = self.previous_word.chars().collect::<Vec<_>>();
 
         let min_length = cmp::min(word_vec.len(), prev_word_vec.len());
 
@@ -167,11 +167,8 @@ impl Dawg {
         self.previous_word = String::new();
     }
 
-    fn find<'a>(
-        &self,
-        word: Vec<String>,
-        case_sensitive: bool,
-    ) -> Option<SearchRes> {
+    fn find<'a>(&self, word: String, case_sensitive: bool) -> Option<SearchResult> {
+        let letters = word.chars().collect::<Vec<char>>();
         
         #[cfg(not(feature = "threading"))]
         let mut node: Node = Rc::clone(&self.root);
@@ -179,16 +176,16 @@ impl Dawg {
         let mut node: Node = Arc::clone(&self.root);
 
         for i in 0..word.len() {
-            let letter = word[i].to_owned();
+            let letter = letters[i].to_owned();
 
             #[cfg(not(feature = "threading"))]
-            let keys = node.borrow().edges.keys().map(|x| x.to_string()).collect::<Vec<_>>();
+            let keys = node.borrow().edges.keys().map(|x| x.to_owned()).collect::<Vec<_>>();
             #[cfg(feature = "threading")]
-            let keys = node.lock().unwrap().edges.keys().map(|x| x.to_string()).collect::<Vec<_>>();
+            let keys = node.lock().unwrap().edges.keys().map(|x| x.to_owned()).collect::<Vec<_>>();
 
             match case_sensitive {
                 true => {
-                    if keys.contains(&letter) {
+                    if keys.contains(&&letter) {
                         #[cfg(not(feature = "threading"))]
                         let next_node = Rc::clone(&node.as_ref().borrow().edges[&letter]);
                         #[cfg(feature = "threading")]
@@ -200,8 +197,8 @@ impl Dawg {
                     }
                 }
                 false => {
-                    let keys = keys.iter().map(|x| x.to_uppercase()).collect::<Vec<_>>();
-                    let letter = letter.to_uppercase();
+                    let keys = keys.iter().map(|x| x.to_uppercase().next().unwrap()).collect::<Vec<_>>();
+                    let letter = letter.to_uppercase().next().unwrap();
 
                     if keys.contains(&letter) {
                         #[cfg(not(feature = "threading"))]
@@ -217,14 +214,11 @@ impl Dawg {
             }
         }
 
-        return Some(SearchRes::new(node, word));
+        return Some(SearchResult::new(node, word));
     }
 
     /// Given a specific word, check if the word exists in the lexicon (Allowing search to be case sensitive or insensitive)
-    /// TODO: WE SHOULD BE ABLE TO ACCEPT A VECTOR OF STRINGS TOO SO WE DON'T MAKE A MISTAKE IN OUR SPLITTING HERE
-    /// SO SOMETHING LIKE vec!["H", "U", "M", "A", "N"]
-    /// although this thinking doesn't hold up when you consider the fact that we actually split the words ourselve to build the dawg
-    pub fn is_word<'a>(&self, word: Vec<String>, case_sensitive: bool) -> Option<Vec<String>> {
+    pub fn is_word<'a>(&self, word: String, case_sensitive: bool) -> Option<String> {
         let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {
@@ -251,7 +245,7 @@ impl Dawg {
     }
 
     /// find out if word is a prefix of anything in the dictionary
-    pub fn lookup<'a>(&self, word: Vec<String>, case_sensitive: bool) -> Option<Node> {
+    pub fn lookup<'a>(&self, word: String, case_sensitive: bool) -> Option<Node> {
         let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {

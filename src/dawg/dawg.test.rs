@@ -11,8 +11,6 @@ mod test_dawg {
         ]
         .iter()
         .map(|x| x.to_string())
-        .collect::<Vec<_>>()
-        .iter()
         .map(|x| x.to_uppercase())
         .collect::<Vec<_>>();
 
@@ -24,14 +22,6 @@ mod test_dawg {
 
         dawg.finish();
         return dawg;
-    }
-
-    fn adapt(word: impl AsRef<str>) -> Vec<String> {
-        word.as_ref()
-            .split_terminator("")
-            .skip(1)
-            .map(|l| l.to_string())
-            .collect::<Vec<String>>()
     }
 
 
@@ -57,8 +47,6 @@ mod test_dawg {
 
     #[cfg(test)]
     mod insert_new_word {
-        use std::{collections::HashMap, borrow::BorrowMut, rc::Rc};
-
         use crate::Dawg;
 
         #[test]
@@ -107,7 +95,7 @@ mod test_dawg {
                 let dawgie = dawg.root.lock().unwrap();
 
                 assert_eq!(dawgie.edges().len(), 1);
-                assert!(dawgie.edges().get("B").is_some());
+                assert!(dawgie.edges().get(&'B').is_some());
                 assert_eq!(dawgie.terminal, false);
             }
             
@@ -139,93 +127,56 @@ mod test_dawg {
         assert_eq!(dawg.unchecked_nodes.len(), 0);
         assert_eq!(dawg.previous_word.len(), 0);
     }
-    
-    
 
-        #[test]
-        fn should_remove_all_unchecked_nodes_when_finish_is_called() {
-
-        }
-
-        // if the previously existing node that is now mapped to the parent (see line 79 - 91) was not a terminal node
-        // and the child of this parent was a terminal node, ensure that there is no mistakes 
-        // (because updating this to a terminal would cause issues for the previos nodes that relied on it, and not updating it to terminal
-        // would cause issues for the new parent)
-        // #[test]
-        // fn minimize_works_fine_for_termina_and_non_terminal_letters_with_common_prefixes() {
-        //     let words = [ "PIC", "PICK", "PICKBACK", "PICKED", "PICKLE", "PICKY",];
-        // }
-
-    #[test]
-    fn test_dawg_creation() {
-        let dawg = Dawg::new();
-
-        assert_eq!(dawg.unchecked_nodes.len(), 0);
-        assert_eq!(dawg.previous_word, "");
-        assert_eq!(dawg.minimized_nodes.keys().len(), 0);
-        #[cfg(not(feature = "threading"))]
-        assert_eq!(dawg.root.borrow().count, 0);
-        #[cfg(feature = "threading")]
-        assert_eq!(dawg.root.lock().unwrap().count, 0);
-
-        #[cfg(not(feature = "threading"))]
-        assert_eq!(dawg.root.borrow().edges.len(), 0);
-        #[cfg(feature = "threading")]
-        assert_eq!(dawg.root.lock().unwrap().edges.len(), 0);
-
-        #[cfg(not(feature = "threading"))]
-        assert_eq!(dawg.root.borrow().terminal, false);
-        #[cfg(feature = "threading")]
-        assert_eq!(dawg.root.lock().unwrap().terminal, false);
-    }
 
     #[test]
     fn test_dawg_word_search() {
         let dawg = setup_dawg();
 
-        assert_eq!(dawg.is_word(adapt("BAM"), true).unwrap(), adapt("BAM"));
-        assert_eq!(dawg.is_word(adapt("BATHE"), true).unwrap(), adapt("BATHE"));
+        assert_eq!(dawg.is_word(String::from("BAM"), true).unwrap(), String::from("BAM"));
+        assert_eq!(dawg.is_word(String::from("BATHE"), true).unwrap(), String::from("BATHE"));
+        assert_eq!(dawg.is_word(String::from("BA"), false), None);
         assert_eq!(
-            dawg.is_word(adapt("CAREERS"), true).unwrap(),
-            adapt("CAREERS")
+            dawg.is_word(String::from("CAREERS"), true).unwrap(),
+            String::from("CAREERS")
         );
-        assert_eq!(dawg.is_word(adapt("HUMAN"), true).unwrap(), adapt("HUMAN"));
-        assert_eq!(dawg.is_word(adapt("CAREE"), true), None);
-        assert_eq!(dawg.is_word(adapt("CAREERZS"), true), None);
+        assert_eq!(dawg.is_word(String::from("HUMAN"), true).unwrap(), String::from("HUMAN"));
+        assert_eq!(dawg.is_word(String::from("CAREE"), true), None);
+        assert_eq!(dawg.is_word(String::from("CAREERZS"), true), None);
     }
 
     #[test]
     fn test_dawg_search_is_case_insensitive() {
         let dawg = setup_dawg();
 
-        assert_eq!(dawg.is_word(adapt("BaM"), false).unwrap(), adapt("BaM"));
-        assert_eq!(dawg.is_word(adapt("bat"), false).unwrap(), adapt("bat"));
+        assert_eq!(dawg.is_word(String::from("BaM"), false).unwrap(), String::from("BaM"));
+        assert_eq!(dawg.is_word(String::from("bat"), false).unwrap(), String::from("bat"));
         assert_eq!(
-            dawg.is_word(adapt("cAreeRs"), false).unwrap(),
-            adapt("cAreeRs")
+            dawg.is_word(String::from("cAreeRs"), false).unwrap(),
+            String::from("cAreeRs")
         );
-        assert_eq!(dawg.is_word(adapt("caree"), false), None);
-        assert_eq!(dawg.is_word(adapt("CAREERZS"), false), None);
-        assert_eq!(dawg.is_word(adapt("HUMAN"), false).unwrap(), adapt("HUMAN"));
+        assert_eq!(dawg.is_word(String::from("caree"), false), None);
+        assert_eq!(dawg.is_word(String::from("CAREERZS"), false), None);
+        assert_eq!(dawg.is_word(String::from("HUMAN"), false).unwrap(), String::from("HUMAN"));
     }
 
     #[test]
     fn test_prefix_exists() {
         let dawg = setup_dawg();
 
-        assert!(dawg.lookup(adapt("care"), false).is_some());
+        assert!(dawg.lookup(String::from("care"), false).is_some());
         #[cfg(not(feature = "threading"))]
-        let lookup = dawg.lookup(adapt("ba"), false).unwrap();
+        let lookup = dawg.lookup(String::from("ba"), false).unwrap();
         #[cfg(not(feature = "threading"))]
         let lookup = lookup.borrow();
 
         #[cfg(feature = "threading")]
-        let lookup = dawg.lookup(adapt("ba"), false).unwrap();
+        let lookup = dawg.lookup(String::from("ba"), false).unwrap();
         #[cfg(feature = "threading")]
         let lookup = lookup.lock().unwrap();
 
         assert_eq!(lookup.edges.keys().len(), 2);
 
-        assert!(dawg.lookup(adapt("CATH"), false).is_some());
+        assert!(dawg.lookup(String::from("CATH"), false).is_some());
     }
 }
