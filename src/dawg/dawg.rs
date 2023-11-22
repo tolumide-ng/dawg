@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::{collections::HashMap, cmp};
 
 #[cfg(not(feature = "threading"))]
@@ -12,11 +11,6 @@ use crate::node::node::{DawgWrapper, Node};
 use crate::dawg::search::SearchRes;
 use crate::dawg::tridawg::TriDawg;
 
-
-pub enum SearchReq {
-    Vertex,
-    Word,
-}
 
 #[cfg(test)]
 #[path = "./dawg.test.rs"]
@@ -46,55 +40,49 @@ impl Dawg {
         }
     }
 
+    /// Removes nodes in the unchecked nodes up to (down_to) e.g. 
+    /// if there are 7 items in unchecked_nodes and `down_to` is 4,
+    /// minimize would remove node 7, 6, and 5
     fn minimize(&mut self, down_to: usize) {
-        // 4 of length 8
         let mut start = self.unchecked_nodes.len() as i8 - 1;
         let end = down_to as i8 - 1;
 
         while start > end {
-            let i = start as usize;
+            let index = start as usize;
+            
             let TriDawg {
                 parent,
                 letter,
                 // rename child to current
-                child,
-            } = &mut self.unchecked_nodes[i];
+                child: current,
+            } = &mut self.unchecked_nodes[index];
 
             #[cfg(not(feature = "threading"))]
-            let node = child.try_borrow().unwrap().to_string();
-
+            let node = current.try_borrow().unwrap().to_string();
             #[cfg(feature = "threading")]
-            let node = child.lock().unwrap().to_string();
+            let node = current.lock().unwrap().to_string();
 
             let exists = self.minimized_nodes.contains_key(node.as_str());
 
+            // if the current node already exists in our minimize nodes list, map the parent to the existing node rather than creating a new one with current
             if exists {
                 let minimized_reference = self.minimized_nodes.get(node.as_str()).unwrap();
 
-                #[cfg(not(feature = "threading"))]
-                parent
-                    .as_ref()
-                    .borrow_mut()
-                    .edges
-                    .insert(letter.to_owned(), Rc::clone(minimized_reference));
 
+                // same letter but updates to the connection to an already existing node in the dawg (minimized nodes)
+                #[cfg(not(feature = "threading"))]
+                parent.as_ref().borrow_mut().edges.insert(letter.to_owned(), Rc::clone(minimized_reference));
                 #[cfg(feature = "threading")]
-                parent
-                    .as_ref()
-                    .lock()
-                    .unwrap()
-                    .edges
-                    .insert(letter.to_owned(), Arc::clone(minimized_reference));
+                parent.as_ref().lock().unwrap().edges.insert(letter.to_owned(), Arc::clone(minimized_reference));
             } else {
                 #[cfg(not(feature = "threading"))]
-                self.minimized_nodes.insert(node, Rc::clone(child));
-
+                self.minimized_nodes.insert(node, Rc::clone(current));
                 #[cfg(feature = "threading")]
-                self.minimized_nodes.insert(node, Arc::clone(&child));
+                self.minimized_nodes.insert(node, Arc::clone(&current));
             }
 
             self.unchecked_nodes.pop();
-
+            
             start -= 1;
         }
     }
@@ -162,14 +150,6 @@ impl Dawg {
         #[cfg(feature = "threading")]
         {last_node.child.as_ref().lock().unwrap().terminal = true};
 
-
-        // let last_unchecked = self.unchecked_nodes.len() - 1;
-        // #[cfg(not(feature = "threading"))]
-        // let node = &mut self.unchecked_nodes[last_unchecked].child.as_ref().borrow_mut();
-        // #[cfg(feature = "threading")]
-        // let node = &mut self.unchecked_nodes[last_unchecked].child.as_ref().lock().unwrap();
-        // node.terminal = true;
-
         self.previous_word = word;
     }
 
@@ -184,17 +164,17 @@ impl Dawg {
 
         self.minimized_nodes = HashMap::new();
         self.unchecked_nodes = vec![];
+        self.previous_word = String::new();
     }
 
     fn find<'a>(
         &self,
         word: Vec<String>,
-        return_type: SearchReq,
         case_sensitive: bool,
     ) -> Option<SearchRes> {
+        
         #[cfg(not(feature = "threading"))]
         let mut node: Node = Rc::clone(&self.root);
-
         #[cfg(feature = "threading")]
         let mut node: Node = Arc::clone(&self.root);
 
@@ -202,33 +182,15 @@ impl Dawg {
             let letter = word[i].to_owned();
 
             #[cfg(not(feature = "threading"))]
-            let keys = node
-                .as_ref()
-                .borrow()
-                .edges
-                .keys()
-                .collect::<Vec<_>>()
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>();
-
+            let keys = node.borrow().edges.keys().map(|x| x.to_string()).collect::<Vec<_>>();
             #[cfg(feature = "threading")]
-            let keys = node
-                .lock()
-                .unwrap()
-                .edges
-                .keys()
-                .collect::<Vec<_>>()
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>();
+            let keys = node.lock().unwrap().edges.keys().map(|x| x.to_string()).collect::<Vec<_>>();
 
             match case_sensitive {
                 true => {
                     if keys.contains(&letter) {
                         #[cfg(not(feature = "threading"))]
                         let next_node = Rc::clone(&node.as_ref().borrow().edges[&letter]);
-
                         #[cfg(feature = "threading")]
                         let next_node = Arc::clone(&node.lock().unwrap().edges[&letter]);
 
@@ -239,13 +201,11 @@ impl Dawg {
                 }
                 false => {
                     let keys = keys.iter().map(|x| x.to_uppercase()).collect::<Vec<_>>();
-
                     let letter = letter.to_uppercase();
 
                     if keys.contains(&letter) {
                         #[cfg(not(feature = "threading"))]
                         let next_node = Rc::clone(&node.as_ref().borrow().edges[&letter]);
-
                         #[cfg(feature = "threading")]
                         let next_node = Arc::clone(&node.as_ref().lock().unwrap().edges[&letter]);
 
@@ -265,7 +225,7 @@ impl Dawg {
     /// SO SOMETHING LIKE vec!["H", "U", "M", "A", "N"]
     /// although this thinking doesn't hold up when you consider the fact that we actually split the words ourselve to build the dawg
     pub fn is_word<'a>(&self, word: Vec<String>, case_sensitive: bool) -> Option<Vec<String>> {
-        let result = self.find(word, SearchReq::Word, case_sensitive);
+        let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {
             #[cfg(not(feature = "threading"))]
@@ -292,7 +252,7 @@ impl Dawg {
 
     /// find out if word is a prefix of anything in the dictionary
     pub fn lookup<'a>(&self, word: Vec<String>, case_sensitive: bool) -> Option<Node> {
-        let result = self.find(word, SearchReq::Vertex, case_sensitive);
+        let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {
             return Some(context.node);

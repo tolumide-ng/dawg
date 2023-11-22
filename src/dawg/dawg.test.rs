@@ -46,6 +46,7 @@ mod test_dawg {
         {   
             assert_eq!(dawg.root.borrow().count, 0);
             assert_eq!(dawg.root.borrow().id, 0);
+            assert_eq!(dawg.root.borrow().edges().len(), 0);
         }
         #[cfg(feature = "threading")]
         {
@@ -56,15 +57,104 @@ mod test_dawg {
 
     #[cfg(test)]
     mod insert_new_word {
-        #[test]
-        fn should_insert_a_new_word_into_an_existing_dawg() {}
+        use std::{collections::HashMap, borrow::BorrowMut, rc::Rc};
 
+        use crate::Dawg;
 
         #[test]
-        fn should_insert_a_new_word_into_a_new_dawg() {}
+        fn should_insert_a_new_word_into_a_new_dawg() {
+            let word = String::from("success");
+            let mut dawg = Dawg::new();
+            dawg.insert(word.to_owned());
+
+            {
+                #[cfg(not(feature = "threading"))]
+                let dawgie = dawg.root.borrow();
+                #[cfg(feature = "threading")]
+                let dawgie = dawg.root.lock().unwrap();
+
+                assert_eq!(dawgie.edges().len(), 1);
+                assert_eq!(dawgie.terminal, false);
+            }
+
+            assert_eq!(dawg.minimized_nodes.len(), 0);
+            assert_eq!(dawg.unchecked_nodes.len(), word.len());
+            assert_eq!(dawg.previous_word, word);
+        }
+
+        #[test]
+        #[should_panic]
+        fn should_panic_if_inserted_words_are_not_ordered() {
+            let words = vec!["background", "backend"];
+            let mut dawg = Dawg::new();
+            for word in words {
+                dawg.insert(word.to_string());
+            }
+        }
+
+        #[test]
+        fn should_insert_multiple_words_into_a_dawg() {
+            let words = vec!["BACKEND", "BACKGROUND"];
+            let mut dawg = Dawg::new();
+            for word in &words {
+                dawg.insert(word.to_string());
+            }
+
+            {
+                #[cfg(not(feature = "threading"))]
+                let dawgie = dawg.root.borrow();
+                #[cfg(feature = "threading")]
+                let dawgie = dawg.root.lock().unwrap();
+
+                assert_eq!(dawgie.edges().len(), 1);
+                assert!(dawgie.edges().get("B").is_some());
+                assert_eq!(dawgie.terminal, false);
+            }
+            
+
+            assert_eq!(dawg.minimized_nodes.len(), 3); // E, N, D (the nodes removed from unchecked node after the addition of background)
+            assert_eq!(dawg.unchecked_nodes.len(), words.last().unwrap().len());
+
+            let new_word = "COMEDY".to_string();
+            dawg.insert(new_word.clone());
+            assert_eq!(dawg.minimized_nodes.len(), words.last().unwrap().len());
+            assert_eq!(dawg.unchecked_nodes.len(), new_word.len());
+        }
     }
 
 
+    #[test]
+    fn should_cleanup_after_calling_finish() {
+        let words = vec!["BACKEND", "BACKGROUND"];
+        let mut dawg = Dawg::new();
+        for word in &words {
+            dawg.insert(word.to_string());
+        }
+
+        assert_eq!(dawg.minimized_nodes.len(), 3); // E, N, D (the nodes removed from unchecked node after the addition of background)
+        assert_eq!(dawg.unchecked_nodes.len(), words.last().unwrap().len());
+
+        dawg.finish();
+        assert_eq!(dawg.minimized_nodes.len(), 0);
+        assert_eq!(dawg.unchecked_nodes.len(), 0);
+        assert_eq!(dawg.previous_word.len(), 0);
+    }
+    
+    
+
+        #[test]
+        fn should_remove_all_unchecked_nodes_when_finish_is_called() {
+
+        }
+
+        // if the previously existing node that is now mapped to the parent (see line 79 - 91) was not a terminal node
+        // and the child of this parent was a terminal node, ensure that there is no mistakes 
+        // (because updating this to a terminal would cause issues for the previos nodes that relied on it, and not updating it to terminal
+        // would cause issues for the new parent)
+        // #[test]
+        // fn minimize_works_fine_for_termina_and_non_terminal_letters_with_common_prefixes() {
+        //     let words = [ "PIC", "PICK", "PICKBACK", "PICKED", "PICKLE", "PICKY",];
+        // }
 
     #[test]
     fn test_dawg_creation() {
