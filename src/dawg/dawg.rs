@@ -167,15 +167,15 @@ impl Dawg {
         self.previous_word = String::new();
     }
 
-    fn find<'a>(&self, word: String, case_sensitive: bool) -> Option<SearchResult> {
-        let letters = word.chars().collect::<Vec<char>>();
+    fn find<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<SearchResult> {
+        let letters = word.as_ref().chars().collect::<Vec<char>>();
         
         #[cfg(not(feature = "threading"))]
         let mut node: Node = Rc::clone(&self.root);
         #[cfg(feature = "threading")]
         let mut node: Node = Arc::clone(&self.root);
 
-        for i in 0..word.len() {
+        for i in 0..word.as_ref().len() {
             let letter = letters[i].to_owned();
 
             #[cfg(not(feature = "threading"))]
@@ -214,11 +214,11 @@ impl Dawg {
             }
         }
 
-        return Some(SearchResult::new(node, word));
+        return Some(SearchResult::new(node, word.as_ref().to_owned()));
     }
 
     /// Given a specific word, check if the word exists in the lexicon (Allowing search to be case sensitive or insensitive)
-    pub fn is_word<'a>(&self, word: String, case_sensitive: bool) -> Option<String> {
+    pub fn is_word<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<String> {
         let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {
@@ -245,7 +245,7 @@ impl Dawg {
     }
 
     /// find out if word is a prefix of anything in the dictionary
-    pub fn lookup<'a>(&self, word: String, case_sensitive: bool) -> Option<Node> {
+    pub fn lookup<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<Node> {
         let result = self.find(word, case_sensitive);
 
         if let Some(context) = result {
