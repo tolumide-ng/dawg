@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{collections::HashMap, cmp};
 
 #[cfg(not(feature = "threading"))]
@@ -255,5 +256,43 @@ impl Dawg {
         }
 
         return None;
+    }
+
+
+    fn anagrams(&self, current: String, remaining: &Vec<&str>) -> Vec<String> {
+        if remaining.is_empty() {
+            if let Some(formed) = self.is_word(&current, false) {
+                return vec![formed];
+            } else {
+                return Vec::with_capacity(0)
+            };
+        }
+
+        let mut words: HashSet<String> = HashSet::new();
+
+        
+        for (index, letter) in remaining.iter().enumerate() {
+            let mut received = remaining.to_vec();
+            
+            let possible = format!("{}{}", current, letter);
+
+            // remove the letter
+            let _ = &received.remove(index);
+
+            let result = self.anagrams(possible, &received);
+            words.extend(result);
+        }
+
+
+        words.into_iter().collect()
+    }
+
+    /// Gets all valid anagram of the word provided
+    pub fn find_anagrams(&self, word: impl AsRef<str>) -> Vec<String> {
+
+        let letters = word.as_ref().graphemes(true).collect::<Vec<_>>();
+        let result = self.anagrams(String::from(""), &letters);
+
+        return result;
     }
 }

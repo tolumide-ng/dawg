@@ -7,7 +7,8 @@ mod test_dawg {
         let mut dawg = Dawg::new();
         let mut words = vec![
             "BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS", "CATH", "CRASE",
-            "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal",
+            "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal", "TAB", "SILENT", "LISTEN", "LIST",
+            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA"
         ]
         .iter()
         .map(|x| x.to_string())
@@ -178,5 +179,34 @@ mod test_dawg {
         assert_eq!(lookup.edges.keys().len(), 2);
 
         assert!(dawg.lookup(String::from("CATH"), false).is_some());
+    }
+
+
+    #[cfg(test)]
+    mod anagrams {
+        use std::collections::HashSet;
+
+        use super::setup_dawg;
+
+        #[test]
+        fn should_return_all_the_possible_angrams() {
+            let dawg = setup_dawg();
+
+            let mut received = dawg.find_anagrams("LISTEN");
+            let mut expected = vec!["LISTEN".to_string(), "SILENT".to_string()];
+            
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+
+            let mut received = dawg.find_anagrams("EAT");
+            let mut expected = vec!["EAT".to_string(), "TEA".to_string(), "ATE".to_string(), "ETA".to_string()];
+
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+        }
     }
 }
