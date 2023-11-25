@@ -95,7 +95,7 @@ mod test_dawg {
                 let dawgie = dawg.root.lock().unwrap();
 
                 assert_eq!(dawgie.edges().len(), 1);
-                assert!(dawgie.edges().get(&'B').is_some());
+                assert!(dawgie.edges().get(&"B".to_string()).is_some());
                 assert_eq!(dawgie.terminal, false);
             }
             

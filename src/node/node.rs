@@ -29,7 +29,7 @@ pub struct DawgNode {
     /// FALSE: No, it is not the end of a valid word
     pub terminal: bool,
     /// Letters(nodes) that extend from this letter (node)
-    pub(crate) edges: HashMap<char, Node>,
+    pub(crate) edges: HashMap<String, Node>,
     /// Specifies the total number of word terminals resulting from this node,
     /// this word terminals (letters that end a word) can be direct children, grand-children, 
     /// or even great-grand-children of this node
@@ -96,12 +96,12 @@ impl DawgNode {
         return count;
     }
 
-    pub fn edge_keys(&self) -> Vec<&char> {
+    pub fn edge_keys(&self) -> Vec<&String> {
         let keys = self.edges.keys().collect::<Vec<_>>();
         keys
     }
 
-    pub fn edges(&self) -> &HashMap<char, Node> {
+    pub fn edges(&self) -> &HashMap<String, Node> {
         &self.edges
     }
 }

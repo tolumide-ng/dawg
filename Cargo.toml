@@ -15,3 +15,4 @@ threading = []
 
 [dependencies]
 serde = { version = "1.0.193", features = ["derive", "rc"] }
+unicode-segmentation = "1.10.1"

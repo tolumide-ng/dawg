@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::node::node::{DawgWrapper, Node};
 use crate::dawg::search::SearchResult;
@@ -98,8 +99,9 @@ impl Dawg {
 
         let mut common_prefix = 0;
 
-        let word_vec = word.chars().collect::<Vec<_>>();
-        let prev_word_vec = self.previous_word.chars().collect::<Vec<_>>();
+        
+        let word_vec = word.graphemes(true).collect::<Vec<_>>();
+        let prev_word_vec = self.previous_word.graphemes(true).collect::<Vec<_>>();
 
         let min_length = cmp::min(word_vec.len(), prev_word_vec.len());
 
@@ -168,7 +170,7 @@ impl Dawg {
     }
 
     fn find<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<SearchResult> {
-        let letters = word.as_ref().chars().collect::<Vec<char>>();
+        let letters = word.as_ref().graphemes(true).collect::<Vec<_>>();
         
         #[cfg(not(feature = "threading"))]
         let mut node: Node = Rc::clone(&self.root);
@@ -197,8 +199,8 @@ impl Dawg {
                     }
                 }
                 false => {
-                    let keys = keys.iter().map(|x| x.to_uppercase().next().unwrap()).collect::<Vec<_>>();
-                    let letter = letter.to_uppercase().next().unwrap();
+                    let keys = keys.iter().map(|x| x.to_uppercase()).collect::<Vec<_>>();
+                    let letter = letter.to_uppercase();
 
                     if keys.contains(&letter) {
                         #[cfg(not(feature = "threading"))]

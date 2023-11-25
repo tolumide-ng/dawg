@@ -88,9 +88,9 @@ mod test_dawg_node {
             if ['a', 'b', 'c'].contains(&id) {
                 if let Some(node_at_zero) = nodes.get_mut(0) {
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
                 }
             } else if ['d', 'e'].contains(&id) {
                 // 4th and 5th node are terminals (and the children of node with id 2)
@@ -99,9 +99,9 @@ mod test_dawg_node {
                     ref_node.terminal = true;
 
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
                 }
             } else if id == 'f' {
                 // 6th node is a terminal
@@ -110,9 +110,9 @@ mod test_dawg_node {
                     ref_node.terminal = true;
 
                     #[cfg(not(feature = "threading"))]
-                    node_at_zero.borrow_mut().edges.insert(id, Rc::clone(&dawg_node));
+                    node_at_zero.borrow_mut().edges.insert(id.to_string(), Rc::clone(&dawg_node));
                     #[cfg(feature = "threading")]
-                    node_at_zero.lock().unwrap().edges.insert(id, Arc::clone(&dawg_node));
+                    node_at_zero.lock().unwrap().edges.insert(id.to_string(), Arc::clone(&dawg_node));
                 }
             }
 
@@ -133,16 +133,16 @@ mod test_dawg_node {
         let mut root_node = root_node.borrow_mut();
         
         assert_eq!(root_node.edge_keys().len(), 3);
-        for id in ['a', 'b', 'c'] {
-            assert!(root_node.edges().keys().collect::<Vec<_>>().contains(&&id));
+        for id in ["a", "b", "c"] {
+            assert!(root_node.edges().keys().collect::<Vec<_>>().contains(&&id.to_string()));
         }
         assert_eq!(root_node.terminal, false);
         assert_eq!(root_node.num_reachable(), 3);
 
         #[cfg(feature = "threading")]
-        let mut root_nodes_child_two = root_node.edges.get(&'b').unwrap().lock().unwrap();
+        let mut root_nodes_child_two = root_node.edges.get(&"b".to_string()).unwrap().lock().unwrap();
         #[cfg(not(feature = "threading"))]
-        let mut root_nodes_child_two = root_node.edges.get(&'b').unwrap().borrow_mut();
+        let mut root_nodes_child_two = root_node.edges.get(&"b".to_string()).unwrap().borrow_mut();
 
         assert_eq!(root_nodes_child_two.edge_keys().len(), 2);
         assert_eq!(root_nodes_child_two.terminal, false);
@@ -150,9 +150,9 @@ mod test_dawg_node {
 
         
         #[cfg(feature = "threading")]
-        let mut grand_child = root_nodes_child_two.edges.get(&'e').unwrap().lock().unwrap();
+        let mut grand_child = root_nodes_child_two.edges.get(&"e".to_string()).unwrap().lock().unwrap();
         #[cfg(not(feature = "threading"))]
-        let mut grand_child = root_nodes_child_two.edges.get(&'e').unwrap().borrow_mut();
+        let mut grand_child = root_nodes_child_two.edges.get(&"e".to_string()).unwrap().borrow_mut();
         
         assert_eq!(grand_child.edge_keys().len(), 1);
         assert_eq!(grand_child.terminal, true);
