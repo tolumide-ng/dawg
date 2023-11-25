@@ -178,7 +178,7 @@ impl Dawg {
         #[cfg(feature = "threading")]
         let mut node: Node = Arc::clone(&self.root);
 
-        for i in 0..word.as_ref().len() {
+        for i in 0..letters.len() {
             let letter = letters[i].to_owned();
 
             #[cfg(not(feature = "threading"))]

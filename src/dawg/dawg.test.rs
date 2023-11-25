@@ -8,7 +8,9 @@ mod test_dawg {
         let mut words = vec![
             "BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS", "CATH", "CRASE",
             "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal", "TAB", "SILENT", "LISTEN", "LIST",
-            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA"
+            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA", 
+            // yorub words (not valid yoruba words though)
+            "ayò", "òya"
         ]
         .iter()
         .map(|x| x.to_string())
@@ -205,6 +207,23 @@ mod test_dawg {
 
             received.sort();
             expected.sort();
+
+            assert_eq!(expected, received);
+
+            let mut received = dawg.find_anagrams("AYÒ"); // (re do)
+            let mut expected = vec!["AYÒ".to_string(), "ÒYA".to_string()]; // ÒYA (do re)
+            
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+
+
+
+            let mut received = dawg.find_anagrams("AYÓ"); // (re mi) - same letters different diacritical/tonal marks
+            let expected: Vec<String> = vec![];
+            
+            received.sort();
 
             assert_eq!(expected, received);
         }
