@@ -334,7 +334,8 @@ impl Dawg {
     // }
 
 
-    /// Returns all words that be formed using the prefix, and the provided letters
+    /// Extends a provided prefix (`extend`) to the right using the letters you provided
+    /// e.g given "PICK" as extend and "YEDTUREI" as the letters, this function would return results like
     fn word_generator(&self, extend: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
         let mut words: HashSet<String> = HashSet::new();
 
@@ -422,6 +423,7 @@ impl Dawg {
 
 
 
+    /// (Highly inefficient approach: O(n!))
     /// This is a really expensive/brute-force approach, if you have a better suggestion, please reach out or raise a PR
     /// Returns all the possible combination of words that can be formed when the provided `extend` variable is extended either to the right or left
     /// e.g. given "IST" as prefix and ""
@@ -440,11 +442,11 @@ impl Dawg {
     /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
     /// 
     /// // assuming we want to see all the possible ways to extend "IST" with the letters "SENTILLCH";
-    /// let mut result = lexicon.extend_with("IST", "SENTILL"); // would return vec!["SCHIST", "LISTEN"]
+    /// let mut result = lexicon.extend_with("IST", "LHENSCLL"); // would return vec!["SCHIST", "LISTEN"]
     /// 
-    /// // let expected = vec!["LISTEN", "SCHIST"];
+    /// let expected = vec!["LIST", "LISTEN", "SCHIST"];
     /// 
-    /// // assert_eq!(result, expected);
+    /// assert_eq!(result, expected);
     /// ```
     pub fn extend_with(&self, extend: impl AsRef<str>, with: impl AsRef<str>) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
@@ -455,7 +457,6 @@ impl Dawg {
 
         if extend.as_ref().len() > 0 {
             for word in words {
-                println!("----------------------------------------------------------------------");
                 if word.contains(&extend.as_ref()) {
                     result.push(word);
                 }

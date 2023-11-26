@@ -236,7 +236,7 @@ mod test_dawg {
                 ("", "SILENTS", vec!["IS", "LENT", "LIST", "LISTEN", "NEST", "SILENT", "STIL", "TEN", "TIL"]),
                 ("", "TJHSJH", vec![]),
                 ("UYW", "NEST", vec![]),
-                ("IST", "STLCHENISTEN", vec!["LISTEN", "SCHIST"])
+                ("IST", "LHENSC", vec!["LIST", "LISTEN", "SCHIST"])
             ];
 
             let dawg = setup_dawg();
