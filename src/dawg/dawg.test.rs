@@ -7,17 +7,20 @@ mod test_dawg {
         let mut dawg = Dawg::new();
         let mut words = vec![
             "BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS", "CATH", "CRASE",
-            "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal",
+            "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal", "TAB", "SILENT", "LISTEN", "LIST",
+            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA",  "LENT", "SCHIST",
+            "SILLY", "SILENT",
+            // yorub words (not valid yoruba words though)
+            "ayò", "òya"
         ]
         .iter()
-        .map(|x| x.to_string())
-        .map(|x| x.to_uppercase())
+        .map(|x| x.to_string().to_uppercase())
         .collect::<Vec<_>>();
 
         words.sort();
 
         for i in 0..words.len() {
-            dawg.insert(words[i].clone());
+            dawg.insert(words[i].to_owned());
         }
 
         dawg.finish();
@@ -95,7 +98,7 @@ mod test_dawg {
                 let dawgie = dawg.root.lock().unwrap();
 
                 assert_eq!(dawgie.edges().len(), 1);
-                assert!(dawgie.edges().get(&'B').is_some());
+                assert!(dawgie.edges().get(&"B".to_string()).is_some());
                 assert_eq!(dawgie.terminal, false);
             }
             
@@ -178,5 +181,72 @@ mod test_dawg {
         assert_eq!(lookup.edges.keys().len(), 2);
 
         assert!(dawg.lookup(String::from("CATH"), false).is_some());
+    }
+
+
+    #[cfg(test)]
+    mod anagrams {
+        use super::setup_dawg;
+
+        #[test]
+        fn should_return_all_the_possible_angrams() {
+            let dawg = setup_dawg();
+
+            let mut received = dawg.find_anagrams("LISTEN");
+            let mut expected = vec!["LISTEN".to_string(), "SILENT".to_string()];
+            
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+
+            let mut received = dawg.find_anagrams("EAT");
+            let mut expected = vec!["EAT".to_string(), "TEA".to_string(), "ATE".to_string(), "ETA".to_string()];
+
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+
+            let mut received = dawg.find_anagrams("AYÒ"); // (re do)
+            let mut expected = vec!["AYÒ".to_string(), "ÒYA".to_string()]; // ÒYA (do re)
+            
+            received.sort();
+            expected.sort();
+
+            assert_eq!(expected, received);
+
+
+
+            let mut received = dawg.find_anagrams("AYÓ"); // (re mi) - same letters different diacritical/tonal marks
+            let expected: Vec<String> = vec![];
+            
+            received.sort();
+
+            assert_eq!(expected, received);
+        }
+
+
+        #[test]
+        fn should_return_all_valid_formable_words() {
+
+            let test_case: Vec<(&str, &str, Vec<&str>)> = vec![
+                ("SIL", "NEST", vec!["SILENT"]),
+                ("TH", "BATHES", vec!["BATH", "BATHE"]),
+                ("", "SILENTS", vec!["IS", "LENT", "LIST", "LISTEN", "NEST", "SILENT", "STIL", "TEN", "TIL"]),
+                ("", "TJHSJH", vec![]),
+                ("UYW", "NEST", vec![]),
+                ("IST", "LHENSC", vec!["LIST", "LISTEN", "SCHIST"])
+            ];
+
+            let dawg = setup_dawg();
+
+            for (prefix, letters, expected) in test_case {
+                let mut received = dawg.extend_with(prefix, &letters);
+                received.sort();
+
+                assert_eq!(expected, received);
+            }
+        }
     }
 }

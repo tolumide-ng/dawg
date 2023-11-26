@@ -8,9 +8,29 @@
 //! ```toml
 //! [depedencies.dawg]
 //! version = "x"
-//! features = [
-//!     "threading" # Support Send + Sync 
-//! ]
+//! features = ["threading" ]
+//! ```
+//! [threading] - Support Send + Sync
+//! 
+//! ```Rust
+//! use dawg::Dawg;
+//! 
+//! let mut dawgie = Dawg::new();
+//! let mut words = vec!["BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS, "SILENT", "LIST", "LISTEN", "AYÒ", "ÒYÀ"].iter().map(|w| w.to_string().to_uppercase()).collect::<Vec<_>>();
+//! 
+//! words.sort();
+//! 
+//! for word in words {
+//!     dawgie.insert(word.to_string());
+//! }
+//! 
+//! // to avoid unintended behaviours always remember to close (.finish) after building the dawg
+//! 
+//! dawgie.finish();
+//! 
+//! 
+//! assert!(dawgie.lookup("BATH").is_some());
+//! assert!(dawgie.is_some());
 //! ```
 
 // mod repository;

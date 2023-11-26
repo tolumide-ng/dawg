@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{collections::HashMap, cmp};
 
 #[cfg(not(feature = "threading"))]
@@ -6,6 +7,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::node::node::{DawgWrapper, Node};
 use crate::dawg::search::SearchResult;
@@ -98,8 +100,9 @@ impl Dawg {
 
         let mut common_prefix = 0;
 
-        let word_vec = word.chars().collect::<Vec<_>>();
-        let prev_word_vec = self.previous_word.chars().collect::<Vec<_>>();
+        
+        let word_vec = word.graphemes(true).collect::<Vec<_>>();
+        let prev_word_vec = self.previous_word.graphemes(true).collect::<Vec<_>>();
 
         let min_length = cmp::min(word_vec.len(), prev_word_vec.len());
 
@@ -153,6 +156,7 @@ impl Dawg {
         self.previous_word = word;
     }
 
+    /// Closes the dawg after all words have been inserted into it
     pub fn finish(&mut self) {
         self.minimize(0);
 
@@ -168,14 +172,14 @@ impl Dawg {
     }
 
     fn find<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<SearchResult> {
-        let letters = word.as_ref().chars().collect::<Vec<char>>();
+        let letters = word.as_ref().graphemes(true).collect::<Vec<_>>();
         
         #[cfg(not(feature = "threading"))]
         let mut node: Node = Rc::clone(&self.root);
         #[cfg(feature = "threading")]
         let mut node: Node = Arc::clone(&self.root);
 
-        for i in 0..word.as_ref().len() {
+        for i in 0..letters.len() {
             let letter = letters[i].to_owned();
 
             #[cfg(not(feature = "threading"))]
@@ -197,8 +201,8 @@ impl Dawg {
                     }
                 }
                 false => {
-                    let keys = keys.iter().map(|x| x.to_uppercase().next().unwrap()).collect::<Vec<_>>();
-                    let letter = letter.to_uppercase().next().unwrap();
+                    let keys = keys.iter().map(|x| x.to_uppercase()).collect::<Vec<_>>();
+                    let letter = letter.to_uppercase();
 
                     if keys.contains(&letter) {
                         #[cfg(not(feature = "threading"))]
@@ -218,6 +222,26 @@ impl Dawg {
     }
 
     /// Given a specific word, check if the word exists in the lexicon (Allowing search to be case sensitive or insensitive)
+    /// 
+    /// ```rust
+    /// use dawg::Dawg;
+    /// let mut words = vec!["SCHIST", "TILS", "LISTEN", "STIL", "SILLY", "SILENT", "CAREER", "BEAUTIFUL", "SUCCESS"];
+    /// words.sort();
+    /// 
+    /// let mut lexicon = Dawg::new();
+    /// 
+    /// for word in words {
+    ///     lexicon.insert(word.to_string());
+    /// }
+    /// 
+    /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
+    /// // check  if "SILLY" is a valid word
+    /// let result = lexicon.is_word("SILLY".to_string(), true);
+    /// 
+    /// assert!(result.is_some());
+    /// 
+    /// ```
+    /// // assert!(result.is_some());
     pub fn is_word<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<String> {
         let result = self.find(word, case_sensitive);
 
@@ -236,6 +260,7 @@ impl Dawg {
         return None;
     }
 
+    /// Returns the root node of the dawgie
     pub fn get_root(&self) -> Node {
         #[cfg(not(feature = "threading"))]
         return Rc::clone(&self.root);
@@ -253,5 +278,127 @@ impl Dawg {
         }
 
         return None;
+    }
+
+
+    /// this search is case sensitive
+    fn anagrams(&self, current: String, remaining: &Vec<&str>) -> Vec<String> {
+        if remaining.is_empty() {
+            if let Some(formed) = self.is_word(&current, true) {
+                return vec![formed];
+            } else {
+                return Vec::with_capacity(0)
+            };
+        }
+
+        let mut words: HashSet<String> = HashSet::new();
+
+        
+        for (index, letter) in remaining.iter().enumerate() {
+            let mut received = remaining.to_vec();
+            
+            let possible = format!("{}{}", current, letter);
+
+            // remove the letter
+            let _ = &received.remove(index);
+
+            let result = self.anagrams(possible, &received);
+            words.extend(result);
+        }
+
+
+        words.into_iter().collect()
+    }
+
+    /// Gets all valid anagrams of the word provided
+    /// e.g "ATE" would return vec!["EAT", "TEA", "ATE"] asumming the dictionary you loaded the dawg with contains all these words
+    pub fn find_anagrams(&self, word: impl AsRef<str>) -> Vec<String> {
+
+        let letters = word.as_ref().graphemes(true).collect::<Vec<_>>();
+        let result = self.anagrams(String::from(""), &letters);
+
+        return result;
+    }
+
+
+    /// Extends a provided prefix (`extend`) to the right using the letters you provided
+    /// e.g given "PICK" as extend and "YEDTUREI" as the letters, this function would return results like
+    fn word_generator(&self, extend: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
+        let mut words: HashSet<String> = HashSet::new();
+
+        if let Some(word) = self.find(&extend, true) {
+            #[cfg(feature = "threading")]
+            let is_terminal = word.node.lock().unwrap().terminal;
+            #[cfg(not(feature = "threading"))]
+            let is_terminal = word.node.borrow().terminal;
+            
+            if is_terminal {
+                words.insert(word.word);
+            }
+        }
+
+        if letters.is_empty() {
+            return words.into_iter().collect();
+        }
+
+        for i in 0..letters.len() {
+            let mut local_letters = letters.to_owned();
+            let letter = local_letters[i];
+            local_letters.remove(i);
+
+            let possible_word = format!("{}{}", &extend.as_ref(), letter);
+            
+            let result = self.word_generator(&possible_word, &local_letters);
+            words.extend(result);
+        }
+
+        words.into_iter().collect()
+    }
+
+
+    /// (Highly inefficient approach: O(n!))
+    /// This is a really expensive/brute-force approach, if you have a better suggestion, please reach out or raise a PR
+    /// Returns all the possible combination of words that can be formed when the provided `extend` variable is extended either to the right or left
+    /// e.g. given "IST" as prefix and ""
+    /// ```rust
+    /// use dawg::Dawg;
+    /// 
+    /// let mut words = vec!["SCHIST", "TILS", "LISTEN", "STIL", "SILLY", "SILENT", "CAREER", "BEAUTIFUL", "SUCCESS"];
+    /// words.sort();
+    /// 
+    /// let mut lexicon = Dawg::new();
+    /// 
+    /// for word in words {
+    ///     lexicon.insert(word.to_string());
+    /// }
+    /// 
+    /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
+    /// 
+    /// // assuming we want to see all the possible ways to extend "IST" with the letters "SENTILLCH";
+    /// let mut result = lexicon.extend_with("IST", "LHENSC"); // would return vec!["SCHIST", "LISTEN"]
+    /// result.sort();
+    /// 
+    /// let expected = vec!["LISTEN", "SCHIST"];
+    /// assert_eq!(result, expected);
+    /// ```
+    pub fn extend_with(&self, extend: impl AsRef<str>, with: impl AsRef<str>) -> Vec<String> {
+        let mut result: Vec<String> = Vec::new();
+        let combined = format!("{}{}", with.as_ref(), extend.as_ref());
+        let letters = combined.graphemes(true).collect::<Vec<_>>();
+
+        let words = self.word_generator("", &letters);
+
+        if extend.as_ref().len() > 0 {
+            for word in words {
+                if word.contains(&extend.as_ref()) {
+                    result.push(word);
+                }
+            }
+        } else {
+            result = words;
+        }
+        
+        return result;
+
     }
 }

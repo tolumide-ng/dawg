@@ -2,3 +2,4 @@ target/
 configuration
 configuration/
 configuration/**
+Cargo.lock
