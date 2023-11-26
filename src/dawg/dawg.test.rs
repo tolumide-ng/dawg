@@ -8,7 +8,7 @@ mod test_dawg {
         let mut words = vec![
             "BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS", "CATH", "CRASE",
             "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal", "TAB", "SILENT", "LISTEN", "LIST",
-            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA", 
+            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA",  "LENT",
             // yorub words (not valid yoruba words though)
             "ayò", "òya"
         ]
@@ -186,7 +186,7 @@ mod test_dawg {
 
     #[cfg(test)]
     mod anagrams {
-        use std::collections::HashSet;
+        use std::collections::HashMap;
 
         use super::setup_dawg;
 
@@ -226,6 +226,28 @@ mod test_dawg {
             received.sort();
 
             assert_eq!(expected, received);
+        }
+
+
+        #[test]
+        fn should_return_all_valid_formable_words() {
+
+            let test_case: Vec<(&str, &str, Vec<&str>)> = vec![
+                ("SIL", "NEST", vec!["SILENT"]),
+                ("TH", "BATHES", vec!["BATH", "BATHE"]),
+                ("", "SILENTS", vec!["IS", "LENT", "LIST", "LISTEN", "NEST", "SILENT", "STIL", "TEN", "TIL"]),
+                ("", "TJHSJH", vec![]),
+                ("UYW", "NEST", vec![]),
+            ];
+
+            let dawg = setup_dawg();
+
+            for (prefix, letters, expected) in test_case {
+                let mut received = dawg.extend_with(prefix, &letters);
+                received.sort();
+
+                assert_eq!(expected, received);
+            }
         }
     }
 }
