@@ -8,19 +8,19 @@ mod test_dawg {
         let mut words = vec![
             "BAM", "BAT", "BATH", "CATH", "BATHE", "CAR", "CARS", "CAREERS", "CATH", "CRASE",
             "HUMAN", "a", "aliancia", "alpa", "aloa", "alobal", "TAB", "SILENT", "LISTEN", "LIST",
-            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA",  "LENT",
+            "TEN", "TIL", "STIL", "NEST", "IS", "EAT", "ATE", "TEA", "ETA",  "LENT", "SCHIST",
+            "SILLY", "SILENT",
             // yorub words (not valid yoruba words though)
             "ayò", "òya"
         ]
         .iter()
-        .map(|x| x.to_string())
-        .map(|x| x.to_uppercase())
+        .map(|x| x.to_string().to_uppercase())
         .collect::<Vec<_>>();
 
         words.sort();
 
         for i in 0..words.len() {
-            dawg.insert(words[i].clone());
+            dawg.insert(words[i].to_owned());
         }
 
         dawg.finish();
@@ -186,8 +186,6 @@ mod test_dawg {
 
     #[cfg(test)]
     mod anagrams {
-        use std::collections::HashMap;
-
         use super::setup_dawg;
 
         #[test]
@@ -238,6 +236,7 @@ mod test_dawg {
                 ("", "SILENTS", vec!["IS", "LENT", "LIST", "LISTEN", "NEST", "SILENT", "STIL", "TEN", "TIL"]),
                 ("", "TJHSJH", vec![]),
                 ("UYW", "NEST", vec![]),
+                ("IST", "STLCHENISTEN", vec!["LISTEN", "SCHIST"])
             ];
 
             let dawg = setup_dawg();

@@ -156,6 +156,7 @@ impl Dawg {
         self.previous_word = word;
     }
 
+    /// Closes the dawg after all words have been inserted into it
     pub fn finish(&mut self) {
         self.minimize(0);
 
@@ -239,6 +240,7 @@ impl Dawg {
         return None;
     }
 
+    /// Returns the root node of the dawgie
     pub fn get_root(&self) -> Node {
         #[cfg(not(feature = "threading"))]
         return Rc::clone(&self.root);
@@ -288,7 +290,8 @@ impl Dawg {
         words.into_iter().collect()
     }
 
-    /// Gets all valid anagram of the word provided
+    /// Gets all valid anagrams of the word provided
+    /// e.g "ATE" would return vec!["EAT", "TEA", "ATE"] asumming the dictionary you loaded the dawg with contains all these words
     pub fn find_anagrams(&self, word: impl AsRef<str>) -> Vec<String> {
 
         let letters = word.as_ref().graphemes(true).collect::<Vec<_>>();
@@ -297,53 +300,42 @@ impl Dawg {
         return result;
     }
 
+    //     /// Returns all words that be formed using the prefix, and the provided letters
+    // /// this search is case sensitive
+    // /// NB: Prefix can be an empty string if you like
+    // pub fn word_generator(&self, current: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
+    //     let mut words: HashSet<String> = HashSet::new();
+
+    //     if let Some(word) = self.find(&current, true) {
+    //         #[cfg(feature = "threading")]
+    //         let is_terminal = word.node.lock().unwrap().terminal;
+    //         #[cfg(not(feature = "threading"))]
+    //         let is_terminal = word.node.borrow().terminal;
+    //         if is_terminal {
+    //             words.insert(word.word);
+    //         }
+    //     // valid current can continue with the program anyway
+    //     } else {
+    //         // if the prefix does not exist in the dictionary either as a real word or a prefix, there is no reason to continue the search
+    //         return Vec::with_capacity(0);
+    //     }
+
+    //     for (index, letter) in letters.iter().enumerate() {
+    //         let mut received = letters.to_owned();
+    //         let possible_word = format!("{}{}", current.as_ref(), letter);
+    //         received.remove(index);
+
+    //         let result = self.word_generator(possible_word, &received);
+    //         words.extend(result);
+
+    //     }
+
+    //     return words.into_iter().collect();
+    // }
+
 
     /// Returns all words that be formed using the prefix, and the provided letters
-    /// this search is case sensitive
-    /// NB: Prefix can be an empty string if you like
-    pub fn word_generator(&self, current: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
-        let mut words: HashSet<String> = HashSet::new();
-
-        if let Some(word) = self.find(&current, true) {
-            #[cfg(feature = "threading")]
-            let is_terminal = word.node.lock().unwrap().terminal;
-            #[cfg(not(feature = "threading"))]
-            let is_terminal = word.node.borrow().terminal;
-            if is_terminal {
-                words.insert(word.word);
-            }
-        // valid current can continue with the program anyway
-        } else {
-            // if the prefix does not exist in the dictionary either as a real word or a prefix, there is no reason to continue the search
-            return Vec::with_capacity(0);
-        }
-        
-        for (index, letter) in letters.iter().enumerate() {
-            let mut received = letters.to_owned();
-            let possible_word = format!("{}{}", current.as_ref(), letter);
-            received.remove(index);
-
-            let result = self.word_generator(possible_word, &received);
-            words.extend(result);
-
-        }
-
-        return words.into_iter().collect();
-    }
-
-
-
-    pub fn generate_words(&self, prefix: impl AsRef<str>, letters: impl AsRef<str>) -> Vec<String> {
-        let letters = letters.as_ref().graphemes(true).collect::<Vec<_>>();
-        let result = self.word_generator(prefix, &letters);
-
-        return result
-    }
-
-    /// should we extend the right only?
-    /// given extend as "EN" and letters as "LIST", we need to be able to tests for "EN" -> "LIST" (ENLIST), "EN" -> "TILS"(ENTILS) e.t.c first
-    /// before moving on to something like "LEN" -> "ITS" e.t.c
-    fn extend_right(&self, extend: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
+    fn word_generator(&self, extend: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
         let mut words: HashSet<String> = HashSet::new();
 
         if let Some(word) = self.find(&extend, true) {
@@ -368,7 +360,7 @@ impl Dawg {
 
             let possible_word = format!("{}{}", &extend.as_ref(), letter);
             
-            let result = self.extend_right(&possible_word, &local_letters);
+            let result = self.word_generator(&possible_word, &local_letters);
             words.extend(result);
         }
 
@@ -376,56 +368,103 @@ impl Dawg {
     }
 
 
-    fn extend_(&self, extend: impl AsRef<str>, letters: &Vec<&str>,) -> Vec<String> {
-        let mut words: HashSet<String> = HashSet::new();
+    // fn extend_(&self, extend: impl AsRef<str>, letters: &Vec<&str>,) -> Vec<String> {
+    //     let mut words: HashSet<String> = HashSet::new();
 
-         if let Some(word) = self.find(&extend, true) {
-            #[cfg(feature = "threading")]
-            let is_terminal = word.node.lock().unwrap().terminal;
-            #[cfg(not(feature = "threading"))]
-            let is_terminal = word.node.borrow().terminal;
+    //      if let Some(word) = self.find(&extend, true) {
+    //          println!("WORD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> {:?}", extend.as_ref());
+    //         #[cfg(feature = "threading")]
+    //         let is_terminal = word.node.lock().unwrap().terminal;
+    //         #[cfg(not(feature = "threading"))]
+    //         let is_terminal = word.node.borrow().terminal;
             
-            if is_terminal {
-                words.insert(word.word);
-            }
-        }
+    //         if is_terminal {
+    //             words.insert(word.word);
+    //         }
+    //     }
 
-        if letters.is_empty() {
-            return words.into_iter().collect();
-        }
+    //     if letters.is_empty() {
+    //         return words.into_iter().collect();
+    //     }
+
         
-        for (index, letter) in letters.iter().enumerate() {
-            let mut remaining_letters = letters.to_vec();
-            remaining_letters.remove(index);
-            let possible_word = format!("{}{}", letter, &extend.as_ref());
-            let result = self.extend_(&possible_word, &remaining_letters);
-            words.extend(result);
+    //     for (index, letter) in letters.iter().enumerate() {
+    //         let mut remaining_letters = letters.to_vec();
+    //         remaining_letters.swap_remove(index);
+    //         let possible_word = format!("{}{}", letter, &extend.as_ref());
+    //         let result = self.extend_(&possible_word, &remaining_letters);
+    //         words.extend(result);
             
-            for j in 0..remaining_letters.len() {
-                    let mut local_letters = remaining_letters.to_owned();
-                    let letter = local_letters[j];
-                    local_letters.remove(j);
+    //         for j in 0..remaining_letters.len() {
+    //                 let mut local_letters = remaining_letters.to_owned();
+    //                 let letter = local_letters[j];
+    //                 local_letters.swap_remove(j);
 
-                let possible_word = format!("{}{}", possible_word, letter);
-                let result = self.extend_(&possible_word, &local_letters);
-                words.extend(result);
-            }
-        }
+    //             let possible_word = format!("{}{}", possible_word, letter);
+    //             let result = self.extend_(&possible_word, &local_letters);
+    //             words.extend(result);
+    //         }
+    //     }
 
-        return words.into_iter().collect();
-    }
+    //     return words.into_iter().collect();
+    // }
 
-    /// this is a really expensive/brute-force approach, if you have a better suggestion, please reach out or raise a PR
+
+    // fn filter(&self, extend: &String, words: &Vec<String>) -> Vec<String> {
+    //     let mut valid = vec![];
+
+    //     for word in words {
+            
+    //     }
+
+    //     return valid
+    // }
+
+
+
+    /// This is a really expensive/brute-force approach, if you have a better suggestion, please reach out or raise a PR
+    /// Returns all the possible combination of words that can be formed when the provided `extend` variable is extended either to the right or left
+    /// e.g. given "IST" as prefix and ""
+    /// ```rust
+    /// use dawg::Dawg;
+    /// 
+    /// let mut words = vec!["SCHIST", "TILS", "LISTEN", "STIL", "SILLY", "SILENT", "CAREER", "BEAUTIFUL", "SUCCESS"];
+    /// words.sort();
+    /// 
+    /// let mut lexicon = Dawg::new();
+    /// 
+    /// for word in words {
+    ///     lexicon.insert(word.to_string());
+    /// }
+    /// 
+    /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
+    /// 
+    /// // assuming we want to see all the possible ways to extend "IST" with the letters "SENTILLCH";
+    /// let mut result = lexicon.extend_with("IST", "SENTILL"); // would return vec!["SCHIST", "LISTEN"]
+    /// 
+    /// // let expected = vec!["LISTEN", "SCHIST"];
+    /// 
+    /// // assert_eq!(result, expected);
+    /// ```
     pub fn extend_with(&self, extend: impl AsRef<str>, with: impl AsRef<str>) -> Vec<String> {
-        let mut result: HashSet<String> = HashSet::new();
-        let letters = with.as_ref().graphemes(true).collect::<Vec<_>>();
-        
-        let extend_as_prefix = self.extend_right(&extend, &letters);
-        let extend_as_part_of_word = self.extend_(extend, &letters);
-        result.extend(extend_as_part_of_word);
-        result.extend(extend_as_prefix);
+        let mut result: Vec<String> = Vec::new();
+        let combined = format!("{}{}", with.as_ref(), extend.as_ref());
+        let letters = combined.graphemes(true).collect::<Vec<_>>();
 
-        return result.into_iter().collect();
+        let words = self.word_generator("", &letters);
+
+        if extend.as_ref().len() > 0 {
+            for word in words {
+                println!("----------------------------------------------------------------------");
+                if word.contains(&extend.as_ref()) {
+                    result.push(word);
+                }
+            }
+        } else {
+            result = words;
+        }
+        
+        return result;
 
     }
 }
