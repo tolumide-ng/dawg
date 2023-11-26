@@ -4,6 +4,7 @@
 #### References
 1. [Incremental Construction of Minimal Acyclic Finite-State Automata](https://aclanthology.org/J00-1002.pdf)
 2. [Compressing Dictionaries with a DAWG](http://stevehanov.ca/blog/?id=115)
+3. [Lecture 25 | Programming Abstractions (Stanford) [Video]](https://www.youtube.com/watch?v=TJ8SkcUSdbU&t=2428s)
 
 
 
