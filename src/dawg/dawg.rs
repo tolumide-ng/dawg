@@ -300,39 +300,6 @@ impl Dawg {
         return result;
     }
 
-    //     /// Returns all words that be formed using the prefix, and the provided letters
-    // /// this search is case sensitive
-    // /// NB: Prefix can be an empty string if you like
-    // pub fn word_generator(&self, current: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
-    //     let mut words: HashSet<String> = HashSet::new();
-
-    //     if let Some(word) = self.find(&current, true) {
-    //         #[cfg(feature = "threading")]
-    //         let is_terminal = word.node.lock().unwrap().terminal;
-    //         #[cfg(not(feature = "threading"))]
-    //         let is_terminal = word.node.borrow().terminal;
-    //         if is_terminal {
-    //             words.insert(word.word);
-    //         }
-    //     // valid current can continue with the program anyway
-    //     } else {
-    //         // if the prefix does not exist in the dictionary either as a real word or a prefix, there is no reason to continue the search
-    //         return Vec::with_capacity(0);
-    //     }
-
-    //     for (index, letter) in letters.iter().enumerate() {
-    //         let mut received = letters.to_owned();
-    //         let possible_word = format!("{}{}", current.as_ref(), letter);
-    //         received.remove(index);
-
-    //         let result = self.word_generator(possible_word, &received);
-    //         words.extend(result);
-
-    //     }
-
-    //     return words.into_iter().collect();
-    // }
-
 
     /// Extends a provided prefix (`extend`) to the right using the letters you provided
     /// e.g given "PICK" as extend and "YEDTUREI" as the letters, this function would return results like
@@ -367,60 +334,6 @@ impl Dawg {
 
         words.into_iter().collect()
     }
-
-
-    // fn extend_(&self, extend: impl AsRef<str>, letters: &Vec<&str>,) -> Vec<String> {
-    //     let mut words: HashSet<String> = HashSet::new();
-
-    //      if let Some(word) = self.find(&extend, true) {
-    //          println!("WORD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> {:?}", extend.as_ref());
-    //         #[cfg(feature = "threading")]
-    //         let is_terminal = word.node.lock().unwrap().terminal;
-    //         #[cfg(not(feature = "threading"))]
-    //         let is_terminal = word.node.borrow().terminal;
-            
-    //         if is_terminal {
-    //             words.insert(word.word);
-    //         }
-    //     }
-
-    //     if letters.is_empty() {
-    //         return words.into_iter().collect();
-    //     }
-
-        
-    //     for (index, letter) in letters.iter().enumerate() {
-    //         let mut remaining_letters = letters.to_vec();
-    //         remaining_letters.swap_remove(index);
-    //         let possible_word = format!("{}{}", letter, &extend.as_ref());
-    //         let result = self.extend_(&possible_word, &remaining_letters);
-    //         words.extend(result);
-            
-    //         for j in 0..remaining_letters.len() {
-    //                 let mut local_letters = remaining_letters.to_owned();
-    //                 let letter = local_letters[j];
-    //                 local_letters.swap_remove(j);
-
-    //             let possible_word = format!("{}{}", possible_word, letter);
-    //             let result = self.extend_(&possible_word, &local_letters);
-    //             words.extend(result);
-    //         }
-    //     }
-
-    //     return words.into_iter().collect();
-    // }
-
-
-    // fn filter(&self, extend: &String, words: &Vec<String>) -> Vec<String> {
-    //     let mut valid = vec![];
-
-    //     for word in words {
-            
-    //     }
-
-    //     return valid
-    // }
-
 
 
     /// (Highly inefficient approach: O(n!))
