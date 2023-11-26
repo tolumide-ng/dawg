@@ -222,6 +222,26 @@ impl Dawg {
     }
 
     /// Given a specific word, check if the word exists in the lexicon (Allowing search to be case sensitive or insensitive)
+    /// 
+    /// ```rust
+    /// use dawg::Dawg;
+    /// let mut words = vec!["SCHIST", "TILS", "LISTEN", "STIL", "SILLY", "SILENT", "CAREER", "BEAUTIFUL", "SUCCESS"];
+    /// words.sort();
+    /// 
+    /// let mut lexicon = Dawg::new();
+    /// 
+    /// for word in words {
+    ///     lexicon.insert(word.to_string());
+    /// }
+    /// 
+    /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
+    /// // check  if "SILLY" is a valid word
+    /// let result = lexicon.is_word("SILLY".to_string(), true);
+    /// 
+    /// assert!(result.is_some());
+    /// 
+    /// ```
+    /// // assert!(result.is_some());
     pub fn is_word<'a>(&self, word: impl AsRef<str>, case_sensitive: bool) -> Option<String> {
         let result = self.find(word, case_sensitive);
 
@@ -355,10 +375,10 @@ impl Dawg {
     /// lexicon.finish(); // always remember to close the dawg when you're done inserting;
     /// 
     /// // assuming we want to see all the possible ways to extend "IST" with the letters "SENTILLCH";
-    /// let mut result = lexicon.extend_with("IST", "LHENSCLL"); // would return vec!["SCHIST", "LISTEN"]
+    /// let mut result = lexicon.extend_with("IST", "LHENSC"); // would return vec!["SCHIST", "LISTEN"]
+    /// result.sort();
     /// 
-    /// let expected = vec!["LIST", "LISTEN", "SCHIST"];
-    /// 
+    /// let expected = vec!["LISTEN", "SCHIST"];
     /// assert_eq!(result, expected);
     /// ```
     pub fn extend_with(&self, extend: impl AsRef<str>, with: impl AsRef<str>) -> Vec<String> {

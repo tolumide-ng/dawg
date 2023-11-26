@@ -8,11 +8,9 @@
 //! ```toml
 //! [depedencies.dawg]
 //! version = "x"
-//! features = [
-//!     "threading" # Support Send + Sync 
-//! ]
+//! features = ["threading" ]
 //! ```
-//! 
+//! [threading] - Support Send + Sync
 //! 
 //! ```Rust
 //! use dawg::Dawg;
@@ -32,7 +30,7 @@
 //! 
 //! 
 //! assert!(dawgie.lookup("BATH").is_some());
-//! assert!(dawgie.)
+//! assert!(dawgie.is_some());
 //! ```
 
 // mod repository;
