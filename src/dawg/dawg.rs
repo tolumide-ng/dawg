@@ -321,12 +321,13 @@ impl Dawg {
     }
 
 
-    /// Extends a provided prefix (`extend`) to the right using the letters you provided
-    /// e.g given "PICK" as extend and "YEDTUREI" as the letters, this function would return results like
-    fn word_generator(&self, extend: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
+    /// Extends a provided prefix (`prefix`) to the right using the letters you provided
+    /// e.g given "PICK" as prefix and "YEDTUREI" as the letters, this function would return results like
+    fn word_generator(&self, prefix: impl AsRef<str>, letters: &Vec<&str>) -> Vec<String> {
         let mut words: HashSet<String> = HashSet::new();
 
-        if let Some(word) = self.find(&extend, true) {
+        if let Some(word) = self.find(&prefix, true) {
+            // whether it's a valid word (ends woth a terminal) or not, there are valid words in our dictionary that start with this `prefix` (prefix)
             #[cfg(feature = "threading")]
             let is_terminal = word.node.lock().unwrap().terminal;
             #[cfg(not(feature = "threading"))]
@@ -335,6 +336,9 @@ impl Dawg {
             if is_terminal {
                 words.insert(word.word);
             }
+        } else {
+            // no valid word in our dictionary starts with this `prefix` we should abort immediately and return what we currently have
+            return words.into_iter().collect();
         }
 
         if letters.is_empty() {
@@ -346,7 +350,7 @@ impl Dawg {
             let letter = local_letters[i];
             local_letters.remove(i);
 
-            let possible_word = format!("{}{}", &extend.as_ref(), letter);
+            let possible_word = format!("{}{}", &prefix.as_ref(), letter);
             
             let result = self.word_generator(&possible_word, &local_letters);
             words.extend(result);
