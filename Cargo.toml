@@ -8,6 +8,9 @@ description = "Directed Acyclic Word Graph"
 keywords = ["dawg", "trie"]
 publish = true
 repository = "https://github.com/tolumide-ng/dawg"
+exclude = [
+    "src/sample_words.txt"
+]
 
 
 [features]
