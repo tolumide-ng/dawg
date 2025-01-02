@@ -46,10 +46,12 @@ impl Dawg {
     /// if there are 7 items in unchecked_nodes and `down_to` is 4,
     /// minimize would remove node 7, 6, and 5
     fn minimize(&mut self, down_to: usize) {
-        let mut start = self.unchecked_nodes.len() as i8 - 1;
-        let end = down_to as i8 - 1;
+        let unchecked_nodes = self.unchecked_nodes.len();
+        if unchecked_nodes == 0 { return }        
+        let mut start = unchecked_nodes - 1;
+        let end = down_to;
 
-        while start > end {
+        while start >= end {
             let index = start as usize;
             
             let TriDawg {
@@ -84,7 +86,8 @@ impl Dawg {
             }
 
             self.unchecked_nodes.pop();
-            
+
+            if start == 0 { break; } // handle underflow
             start -= 1;
         }
     }
@@ -201,14 +204,15 @@ impl Dawg {
                     }
                 }
                 false => {
-                    let keys = keys.iter().map(|x| x.to_uppercase()).collect::<Vec<_>>();
                     let letter = letter.to_uppercase();
+                    let letter_exists = keys.iter().position(|x| x.to_uppercase() == letter);
 
-                    if keys.contains(&letter) {
+                    if let Some(index) = letter_exists {
+                        let actual_letter = &keys[index];
                         #[cfg(not(feature = "threading"))]
-                        let next_node = Rc::clone(&node.as_ref().borrow().edges[&letter]);
+                        let next_node = Rc::clone(&node.as_ref().borrow().edges[actual_letter]);
                         #[cfg(feature = "threading")]
-                        let next_node = Arc::clone(&node.as_ref().lock().unwrap().edges[&letter]);
+                        let next_node = Arc::clone(&node.as_ref().lock().unwrap().edges[&actual_letter]);
 
                         node = next_node;
                     } else {

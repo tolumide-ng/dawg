@@ -60,12 +60,12 @@ mod test_dawg {
 
             {
                 #[cfg(not(feature = "threading"))]
-                let dawgie = dawg.root.borrow();
+                let dawg = dawg.root.borrow();
                 #[cfg(feature = "threading")]
-                let dawgie = dawg.root.lock().unwrap();
+                let dawg = dawg.root.lock().unwrap();
 
-                assert_eq!(dawgie.edges().len(), 1);
-                assert_eq!(dawgie.terminal, false);
+                assert_eq!(dawg.edges().len(), 1);
+                assert_eq!(dawg.terminal, false);
             }
 
             assert_eq!(dawg.minimized_nodes.len(), 0);
@@ -93,13 +93,13 @@ mod test_dawg {
 
             {
                 #[cfg(not(feature = "threading"))]
-                let dawgie = dawg.root.borrow();
+                let dawg = dawg.root.borrow();
                 #[cfg(feature = "threading")]
-                let dawgie = dawg.root.lock().unwrap();
+                let dawg = dawg.root.lock().unwrap();
 
-                assert_eq!(dawgie.edges().len(), 1);
-                assert!(dawgie.edges().get(&"B".to_string()).is_some());
-                assert_eq!(dawgie.terminal, false);
+                assert_eq!(dawg.edges().len(), 1);
+                assert!(dawg.edges().get(&"B".to_string()).is_some());
+                assert_eq!(dawg.terminal, false);
             }
             
 
@@ -161,6 +161,24 @@ mod test_dawg {
         assert_eq!(dawg.is_word(String::from("caree"), false), None);
         assert_eq!(dawg.is_word(String::from("CAREERZS"), false), None);
         assert_eq!(dawg.is_word(String::from("HUMAN"), false).unwrap(), String::from("HUMAN"));
+    }
+
+    #[test]
+    fn spaced_and_multiple_characters_dictionary() {
+        let mut dawg = Dawg::new();
+        let mut words = vec![
+            "src/a/b/c/test.java void g5.c.ref.RefSingle.testException() [new <Exception>Single<Exception>(new Exception(), new Exception())] ER",
+            "src/a/b/c/test.java void g5.c.ref.RefSingle.testException() [new <Exception>Single<Exception>(new Exception(), new Exception())] EQ"
+        ];
+
+        words.sort();
+
+        for i in 0..words.len() {
+            dawg.insert(words[i].to_owned());
+        }
+        dawg.finish();
+
+        assert!(dawg.lookup("src/a/b/c/test.java void g5.c.ref.RefSingle.testException() [new <Exception>Single<Exception>(new Exception(), new Exception())] EQ", false).is_some())
     }
 
     #[test]
